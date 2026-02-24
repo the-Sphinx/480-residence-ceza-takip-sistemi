@@ -23,7 +23,8 @@ export function LoginPage() {
           </div>
           <CardTitle className="text-3xl font-bold">480 Residence Ceza Takip Sistemi</CardTitle>
           <CardDescription>
-            Site yönetimi ceza takip sistemi. Devam etmek için Google hesabınızla giriş yapın.
+            Site yönetimi ceza takip sistemi.<br />
+            Devam etmek için Google hesabınızla giriş yapın.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-4">
