@@ -40,7 +40,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       >
         <div className="flex h-14 items-center justify-between border-b px-4 lg:hidden">
             <div className="flex items-center gap-2">
-            <img src="/logo.jpg" alt="480 Residence Ceza Takip Sistemi" className="h-7 w-7" />
+            <img src={`${import.meta.env.BASE_URL}logo.jpg`} alt="480 Residence Ceza Takip Sistemi" className="h-7 w-7" />
             <span className="text-lg font-semibold">480 Residence</span>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
@@ -49,7 +49,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         <div className="hidden lg:flex h-14 items-center gap-2 border-b px-4">
-          <img src="/logo.jpg" alt="480 Residence Ceza Takip Sistemi" className="h-7 w-7" />
+          <img src={`${import.meta.env.BASE_URL}logo.jpg`} alt="480 Residence Ceza Takip Sistemi" className="h-7 w-7" />
           <span className="text-lg font-semibold">480 Residence</span>
         </div>
 

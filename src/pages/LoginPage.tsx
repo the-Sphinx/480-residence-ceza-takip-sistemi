@@ -19,7 +19,7 @@ export function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-            <img src="/logo.jpg" alt="480 Residence Ceza Takip Sistemi" className="w-[300px] h-[300px]" />
+            <img src={`${import.meta.env.BASE_URL}logo.jpg`} alt="480 Residence Ceza Takip Sistemi" className="w-[300px] h-[300px]" />
           </div>
           <CardTitle className="text-3xl font-bold">480 Residence Ceza Takip Sistemi</CardTitle>
           <CardDescription>
