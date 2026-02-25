@@ -21,7 +21,7 @@ import { migrateToSheets, hasLocalData } from '@/services/migration';
 import { useTenantsStore } from '@/stores/tenantsStore';
 import { useFinesStore } from '@/stores/finesStore';
 import { useInfractionsStore } from '@/stores/infractionsStore';
-import { formatDate } from '@/utils/formatters';
+import { formatDateTime } from '@/utils/formatters';
 import { getRepeatPeriod, setRepeatPeriod } from '@/utils/fineCalculation';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -135,7 +135,7 @@ export function SettingsPage() {
 
   const tenantCount = storage.getAll(storage.keys.tenants).length;
   const infractionCount = storage.getAll(storage.keys.infractions).length;
-  const fineCount = storage.getAll(storage.keys.fines).length;
+  const fineCount = storage.getAll<Fine>(storage.keys.fines).filter((f) => !f.isDeleted).length;
 
   return (
     <div className="space-y-6">
@@ -169,7 +169,7 @@ export function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             {spreadsheetId ? <Cloud className="h-5 w-5" /> : <CloudOff className="h-5 w-5" />}
-            Google Sheets Bağlantısı
+            Google Sheets Bağlantısı {getSyncBadge()}
           </CardTitle>
           <CardDescription>
             {spreadsheetId
@@ -178,10 +178,6 @@ export function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-2">
-            {getSyncBadge()}
-          </div>
-
           <div className="space-y-3">
             <div className="text-sm space-y-1">
               <p><span className="text-muted-foreground">Hesap:</span> <strong>{userEmail}</strong></p>
@@ -189,7 +185,7 @@ export function SettingsPage() {
                 <p><span className="text-muted-foreground">Tablo ID:</span> <code className="text-xs bg-muted px-1 py-0.5 rounded">{spreadsheetId}</code></p>
               )}
               {lastSyncTime && (
-                <p><span className="text-muted-foreground">Son Senkronizasyon:</span> {formatDate(lastSyncTime)}</p>
+                <p><span className="text-muted-foreground">Son Senkronizasyon:</span> {formatDateTime(lastSyncTime)}</p>
               )}
             </div>
 
@@ -214,23 +210,29 @@ export function SettingsPage() {
 
             <div className="flex flex-wrap gap-2">
               {spreadsheetId && (
-                <Button variant="outline" size="sm" onClick={handleSyncNow} disabled={isSyncing}>
-                  {isSyncing ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Senkronize Ediliyor...</>
-                  ) : (
-                    <><RefreshCw className="mr-2 h-4 w-4" />Şimdi Senkronize Et</>
-                  )}
-                </Button>
+                <div className="flex flex-col">
+                  <Button variant="outline" size="sm" onClick={handleSyncNow} disabled={isSyncing}>
+                    {isSyncing ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Veriler çekiliyor...</>
+                    ) : (
+                      <><RefreshCw className="mr-2 h-4 w-4" />Verileri çek</>
+                    )}
+                  </Button>
+                  <span className="text-xs text-muted-foreground mt-1">Google Sheets'ten verileri çek</span>
+                </div>
               )}
 
               {spreadsheetId && hasLocalData() && (
-                <Button variant="outline" size="sm" onClick={handleMigrate} disabled={isMigrating}>
-                  {isMigrating ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Aktarılıyor...</>
-                  ) : (
-                    <><ArrowUpFromLine className="mr-2 h-4 w-4" />Verileri Aktar</>
-                  )}
-                </Button>
+                <div className="flex flex-col">
+                  <Button variant="outline" size="sm" onClick={handleMigrate} disabled={isMigrating}>
+                    {isMigrating ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Veriler yükleniyor...</>
+                    ) : (
+                      <><ArrowUpFromLine className="mr-2 h-4 w-4" />Verileri Yükle</>
+                    )}
+                  </Button>
+                  <span className="text-xs text-muted-foreground mt-1">Yerel verileri Google Sheets'e yükle</span>
+                </div>
               )}
             </div>
 

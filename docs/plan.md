@@ -334,3 +334,20 @@ Key data model change:
 - `InfractionType.fineAmount: number` → `InfractionType.fineAmounts: number[]` (5 tiers)
 - Google Sheets headers updated: `fineAmount` → `fineAmount1..fineAmount5`
 - Backward-compatible: old data with single `fineAmount` is auto-migrated to 5 equal tiers
+
+### Phase 7 — Bug Fixes + Cezalar Page (2026-02-26)
+Completed tasks:
+- [x] **Fix fines count in Settings**: Filtered out `isDeleted` fines from the count display
+- [x] **Clarify Sync vs Export buttons**: Added descriptions under buttons, renamed "Verileri Aktar" → "Verileri Yükle"
+- [x] **Fix 404 on page refresh**: Added `public/404.html` redirect + path restoration script in `index.html` (GitHub Pages SPA workaround)
+- [x] **New Cezalar (Fines) page**: Full fines listing across all tenants with filtering (block, status, infraction type, text search), sortable columns, mark paid/delete actions, tenant links
+
+New files:
+- `src/pages/FinesPage.tsx` — Dedicated fines listing page
+- `public/404.html` — GitHub Pages SPA redirect
+
+Modified files:
+- `src/pages/SettingsPage.tsx` — Fines count fix, button label clarification
+- `src/components/layout/Sidebar.tsx` — Added Cezalar nav item with Receipt icon
+- `src/App.tsx` — Added /fines route
+- `index.html` — Added path restoration script for SPA routing

@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
+  Receipt,
   AlertTriangle,
   BarChart3,
   Settings,
@@ -11,6 +12,7 @@ import { Button } from '@/components/ui/button';
 
 const navItems = [
   { to: '/', label: 'Ana Sayfa', icon: LayoutDashboard },
+  { to: '/fines', label: 'Cezalar', icon: Receipt },
   { to: '/tenants', label: 'Sakinler', icon: Users },
   { to: '/infractions', label: 'Ceza Türleri', icon: AlertTriangle },
   { to: '/reports', label: 'Raporlar', icon: BarChart3 },

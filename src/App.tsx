@@ -7,6 +7,7 @@ import { TenantDetailPage } from '@/pages/TenantDetailPage';
 import { InfractionsPage } from '@/pages/InfractionsPage';
 import { ReportsPage } from '@/pages/ReportsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { FinesPage } from '@/pages/FinesPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { useTenantsStore } from '@/stores/tenantsStore';
 import { useFinesStore } from '@/stores/finesStore';
@@ -62,6 +63,7 @@ function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<DashboardPage />} />
+          <Route path="fines" element={<FinesPage />} />
           <Route path="tenants" element={<TenantsPage />} />
           <Route path="tenants/:id" element={<TenantDetailPage />} />
           <Route path="infractions" element={<InfractionsPage />} />
