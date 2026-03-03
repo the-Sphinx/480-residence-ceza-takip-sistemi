@@ -22,13 +22,9 @@ import { useTenantsStore } from '@/stores/tenantsStore';
 import { useFinesStore } from '@/stores/finesStore';
 import { useInfractionsStore } from '@/stores/infractionsStore';
 import { formatDateTime } from '@/utils/formatters';
-import { getRepeatPeriod, setRepeatPeriod } from '@/utils/fineCalculation';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { BulkImportDialog } from '@/components/import/BulkImportDialog';
 
 export function SettingsPage() {
-  const [repeatPeriod, setRepeatPeriodState] = useState(getRepeatPeriod());
   const [clearConfirm, setClearConfirm] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
@@ -174,7 +170,7 @@ export function SettingsPage() {
           <CardDescription>
             {spreadsheetId
               ? 'Veriler Google Sheets ile senkronize ediliyor.'
-              : 'Spreadsheet URL yapılandırılmamış. .env dosyasında VITE_GOOGLE_SPREADSHEET_URL ayarlayın.'}
+              : 'Spreadsheet ID yapılandırılmamış. .env dosyasında VITE_GOOGLE_SPREADSHEET_ID ayarlayın.'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -243,37 +239,6 @@ export function SettingsPage() {
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Kademeli Ceza Ayarları</CardTitle>
-          <CardDescription>Tekrarlayan ihlaller için ceza artış süresi</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center gap-3">
-            <Label htmlFor="repeatPeriod" className="whitespace-nowrap">Tekrar Süresi (ay)</Label>
-            <Input
-              id="repeatPeriod"
-              type="number"
-              min={1}
-              max={60}
-              value={repeatPeriod}
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                if (!isNaN(val) && val > 0) {
-                  setRepeatPeriodState(val);
-                  setRepeatPeriod(val);
-                }
-              }}
-              className="w-24"
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Son {repeatPeriod} ay içindeki aynı türdeki ihlaller sayılarak kademe belirlenir.
-            Bu ayar yalnızca yeni cezaları etkiler.
-          </p>
         </CardContent>
       </Card>
 

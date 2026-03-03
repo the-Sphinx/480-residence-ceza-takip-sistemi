@@ -11,8 +11,8 @@ const SHEET_NAMES = {
 
 const HEADERS = {
   tenants: ['id', 'blockId', 'unitNo', 'fullName', 'isVacant'],
-  infractions: ['id', 'name', 'description', 'category', 'isActive', 'fineAmount1', 'fineAmount2', 'fineAmount3', 'fineAmount4', 'fineAmount5'],
-  fines: ['id', 'tenantId', 'infractionTypeId', 'date', 'amount', 'amountLabel', 'notes', 'isPaid', 'paidDate', 'isDeleted'],
+  infractions: ['fineNo', 'id', 'name', 'description', 'category', 'isActive', 'fineAmount1', 'fineAmount2', 'fineAmount3', 'fineAmount4', 'fineAmount5'],
+  fines: ['id', 'tenantId', 'infractionTypeId', 'date', 'amount', 'amountLabel', 'notes', 'isPaid', 'paidDate', 'isDeleted', 'time', 'location', 'tierIndex'],
 } as const;
 
 export { SHEET_NAMES };
@@ -36,24 +36,28 @@ export function rowToTenant(row: string[]): Tenant {
 }
 
 export function infractionToRow(i: InfractionType): string[] {
-  // Fixed columns: id, name, description, category, isActive
-  // Variable columns: fineAmount1..N (at the end so tier count can grow)
+  // Layout: fineNo(0), id(1), name(2), description(3), category(4), isActive(5), fineAmount1-5(6-10)
   const row = [
+    i.fineNo != null ? String(i.fineNo) : '',
     i.id, i.name, i.description,
     i.category || '', String(i.isActive),
   ];
-  for (const fa of i.fineAmounts) {
-    row.push(fineAmountToString(fa ?? { monetary: 0, label: '' }));
+  // Always pad to exactly 5 fineAmount entries
+  for (let idx = 0; idx < 5; idx++) {
+    const fa = i.fineAmounts[idx] ?? { monetary: 0, label: '' };
+    row.push(fineAmountToString(fa));
   }
   return row;
 }
 
 export function rowToInfraction(row: string[]): InfractionType {
-  // Layout: id(0), name(1), description(2), category(3), isActive(4), fineAmount1(5)...
-  const category = row[3] || undefined;
-  const isActive = row[4] === 'true';
+  // Layout: fineNo(0), id(1), name(2), description(3), category(4), isActive(5), fineAmount1-5(6-10)
+  const fineNoRaw = row[0] ? parseInt(row[0], 10) : undefined;
+  const fineNo = isNaN(fineNoRaw as number) ? undefined : fineNoRaw;
+  const category = row[4] || undefined;
+  const isActive = row[5] === 'true';
   const fineAmounts: FineAmount[] = [];
-  for (let i = 5; i < row.length; i++) {
+  for (let i = 6; i <= 10 && i < row.length; i++) {
     if (row[i] !== undefined && row[i] !== '') {
       fineAmounts.push(parseFineAmountString(row[i]));
     }
@@ -62,7 +66,7 @@ export function rowToInfraction(row: string[]): InfractionType {
   while (fineAmounts.length < 5) {
     fineAmounts.push(fineAmounts.length > 0 ? { ...fineAmounts[fineAmounts.length - 1] } : { monetary: 0, label: '' });
   }
-  return { id: row[0], name: row[1], description: row[2], fineAmounts, category, isActive };
+  return { id: row[1], name: row[2], description: row[3], fineAmounts, category, isActive, fineNo };
 }
 
 export function fineToRow(f: Fine): string[] {
@@ -77,10 +81,14 @@ export function fineToRow(f: Fine): string[] {
     String(f.isPaid),
     f.paidDate || '',
     String(f.isDeleted),
+    f.time || '',
+    f.location || '',
+    f.tierIndex != null ? String(f.tierIndex) : '',
   ];
 }
 
 export function rowToFine(row: string[]): Fine {
+  const tierIndex = row[12] ? parseInt(row[12], 10) : undefined;
   return {
     id: row[0],
     tenantId: row[1],
@@ -92,6 +100,9 @@ export function rowToFine(row: string[]): Fine {
     isPaid: row[7] === 'true',
     paidDate: row[8] || undefined,
     isDeleted: row[9] === 'true',
+    time: row[10] || undefined,
+    location: row[11] || undefined,
+    tierIndex: isNaN(tierIndex as number) ? undefined : tierIndex,
   };
 }
 
@@ -145,12 +156,11 @@ export class SheetsError extends Error {
 // ──────────────────────────────────────────────
 
 export function getSpreadsheetIdFromEnv(): string | null {
-  const url = import.meta.env.VITE_GOOGLE_SPREADSHEET_URL;
-  if (!url || url === 'https://docs.google.com/spreadsheets/d/YOUR_SPREADSHEET_ID_HERE/edit') {
+  const id = import.meta.env.VITE_GOOGLE_SPREADSHEET_ID;
+  if (!id || id === 'YOUR_SPREADSHEET_ID_HERE') {
     return null;
   }
-  const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-  return match ? match[1] : null;
+  return id;
 }
 
 export async function initializeSpreadsheet(
@@ -203,6 +213,17 @@ export async function initializeSpreadsheet(
       }
     }
   }
+
+  // Update header rows for existing sheets to ensure new columns are present
+  for (const sheet of requiredSheets) {
+    if (existingSheets.has(sheet.name)) {
+      const headerUrl = `${SHEETS_API}/${spreadsheetId}/values/${encodeURIComponent(sheet.name)}!A1:Z1?valueInputOption=RAW`;
+      await sheetsRequest(headerUrl, token, {
+        method: 'PUT',
+        body: JSON.stringify({ values: [sheet.headers as unknown as string[]] }),
+      });
+    }
+  }
 }
 
 export async function readSheet<T>(
@@ -253,8 +274,9 @@ export async function findRowIndex(
   spreadsheetId: string,
   sheetName: string,
   id: string,
+  column: string = 'A',
 ): Promise<number> {
-  const url = `${SHEETS_API}/${spreadsheetId}/values/${encodeURIComponent(sheetName)}!A2:A`;
+  const url = `${SHEETS_API}/${spreadsheetId}/values/${encodeURIComponent(sheetName)}!${column}2:${column}`;
   const response = await sheetsRequest(url, token);
   const data = await response.json();
 

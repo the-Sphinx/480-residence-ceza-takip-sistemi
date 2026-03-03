@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useTenantsStore } from '@/stores/tenantsStore';
 import { useInfractionsStore } from '@/stores/infractionsStore';
 import { useFinesStore } from '@/stores/finesStore';
@@ -31,11 +31,6 @@ import {
   CommandGroup,
   CommandItem,
 } from '@/components/ui/command';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { ChevronsUpDown, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -56,9 +51,23 @@ export function FineForm({ open, onClose, preselectedTenantId }: FineFormProps) 
   const [tenantId, setTenantId] = useState('');
   const [infractionTypeId, setInfractionTypeId] = useState('');
   const [date, setDate] = useState(toISODate());
+  const [time, setTime] = useState(() => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  });
+  const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [tenantPopoverOpen, setTenantPopoverOpen] = useState(false);
   const [error, setError] = useState('');
+  const tenantListRef = useRef<HTMLDivElement>(null);
+
+  const scrollTenantListToTop = useCallback(() => {
+    requestAnimationFrame(() => {
+      if (tenantListRef.current) {
+        tenantListRef.current.scrollTop = 0;
+      }
+    });
+  }, []);
 
   const selectedInfraction = activeInfractions.find((i) => i.id === infractionTypeId);
   const selectedTenant = tenants.find((t) => t.id === tenantId);
@@ -73,6 +82,9 @@ export function FineForm({ open, onClose, preselectedTenantId }: FineFormProps) 
       setTenantId(preselectedTenantId ?? '');
       setInfractionTypeId('');
       setDate(toISODate());
+      const now = new Date();
+      setTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+      setLocation('');
       setNotes('');
       setError('');
     }
@@ -101,6 +113,9 @@ export function FineForm({ open, onClose, preselectedTenantId }: FineFormProps) 
       notes: notes.trim(),
       isPaid: false,
       isDeleted: false,
+      time: time || undefined,
+      location: location.trim() ? location.trim().charAt(0).toUpperCase() + location.trim().slice(1) : undefined,
+      tierIndex: tierInfo.tierIndex,
     };
 
     addFine(fine);
@@ -129,51 +144,53 @@ export function FineForm({ open, onClose, preselectedTenantId }: FineFormProps) 
                 disabled
               />
             ) : (
-              <Popover open={tenantPopoverOpen} onOpenChange={setTenantPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    className="w-full justify-between font-normal"
-                  >
-                    {selectedTenant
-                      ? `${selectedTenant.blockId}-${selectedTenant.unitNo} ${selectedTenant.isVacant ? 'BOŞ DAİRE' : selectedTenant.fullName}`
-                      : 'Sakin seçiniz...'}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="İsim veya daire ara..." />
-                    <CommandList>
-                      <CommandEmpty>Sakin bulunamadı</CommandEmpty>
-                      <CommandGroup>
-                        {tenants.map((t) => (
-                          <CommandItem
-                            key={t.id}
-                            value={`${t.blockId}-${t.unitNo} ${t.fullName}`}
-                            onSelect={() => {
-                              setTenantId(t.id);
-                              setTenantPopoverOpen(false);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                'mr-2 h-4 w-4',
-                                tenantId === t.id ? 'opacity-100' : 'opacity-0'
-                              )}
-                            />
-                            <span className="font-medium">{t.blockId}-{t.unitNo}</span>
-                            <span className="ml-2 text-muted-foreground">
-                              {t.isVacant ? 'BOŞ DAİRE' : t.fullName}
-                            </span>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  className="w-full justify-between font-normal"
+                  onClick={() => setTenantPopoverOpen((v) => !v)}
+                >
+                  {selectedTenant
+                    ? `${selectedTenant.blockId}-${selectedTenant.unitNo} ${selectedTenant.isVacant ? 'BOŞ DAİRE' : selectedTenant.fullName}`
+                    : 'Sakin seçiniz...'}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+                {tenantPopoverOpen && (
+                  <div className="rounded-md border">
+                    <Command>
+                      <CommandInput placeholder="İsim veya daire ara..." onValueChange={scrollTenantListToTop} />
+                      <CommandList ref={tenantListRef} className="max-h-48 overflow-y-auto">
+                        <CommandEmpty>Sakin bulunamadı</CommandEmpty>
+                        <CommandGroup>
+                          {tenants.map((t) => (
+                            <CommandItem
+                              key={t.id}
+                              value={`${t.blockId}-${t.unitNo} ${t.fullName}`}
+                              onSelect={() => {
+                                setTenantId(t.id);
+                                setTenantPopoverOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  'mr-2 h-4 w-4',
+                                  tenantId === t.id ? 'opacity-100' : 'opacity-0'
+                                )}
+                              />
+                              <span className="font-medium">{t.blockId}-{t.unitNo}</span>
+                              <span className="ml-2 text-muted-foreground">
+                                {t.isVacant ? 'BOŞ DAİRE' : t.fullName}
+                              </span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -208,14 +225,36 @@ export function FineForm({ open, onClose, preselectedTenantId }: FineFormProps) 
             </div>
           )}
 
-          {/* Date */}
+          {/* Date & Time */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="fineDate">Tarih</Label>
+              <Input
+                id="fineDate"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fineTime">Saat</Label>
+              <Input
+                id="fineTime"
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Location */}
           <div className="space-y-2">
-            <Label htmlFor="fineDate">Tarih</Label>
+            <Label htmlFor="fineLocation">İhlal Yeri</Label>
             <Input
-              id="fineDate"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
+              id="fineLocation"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Örn: Otopark, Bahçe..."
             />
           </div>
 

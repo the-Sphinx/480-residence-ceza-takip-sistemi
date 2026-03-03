@@ -351,3 +351,25 @@ Modified files:
 - `src/components/layout/Sidebar.tsx` — Added Cezalar nav item with Receipt icon
 - `src/App.tsx` — Added /fines route
 - `index.html` — Added path restoration script for SPA routing
+
+### Phase 8 — Tutanak (Fine Notification Document) Print Feature (2026-02-26)
+Completed tasks:
+- [x] **Data model updates**: Added `time`, `location`, `tierIndex` to `Fine`; `fineNo` to `InfractionType`
+- [x] **Google Sheets serialization**: Extended HEADERS, `fineToRow`/`rowToFine`, `infractionToRow`/`rowToInfraction` for new fields; header migration in `initializeSpreadsheet`
+- [x] **Tier label utility**: `getTierLabel()` in `fineCalculation.ts` (Birinci..Beşinci Kademe Yaptırım)
+- [x] **Google Drive scope**: Added `drive` scope to OAuth (users must re-auth)
+- [x] **Google Docs/Drive service**: New `src/services/googleDocs.ts` — copies template, fills `@placeholder@` fields, returns Google Docs URL
+- [x] **FineForm updates**: Added time (HH:mm) and location (İhlal Yeri) input fields; saves `tierIndex`
+- [x] **InfractionForm updates**: Added fineNo (Madde No) input field
+- [x] **Print button**: Printer icon on fine rows in FinesPage and TenantDetailPage — generates tutanak doc and opens in new tab
+- [x] **Environment variables**: `VITE_TUTANAK_TEMPLATE_DOC_ID`, `VITE_TUTANAKLAR_FOLDER_ID`
+
+New files:
+- `src/services/googleDocs.ts` — Template copy, fill, generate for tutanaks
+
+Key data model changes:
+- `Fine`: added `time?: string`, `location?: string`, `tierIndex?: number`
+- `InfractionType`: added `fineNo?: number`
+- Google Sheets columns extended (backward-compatible with fallbacks for old rows)
+
+Note: The `drive` scope must also be added in Google Cloud Console OAuth consent screen. Users will need to re-authenticate after deployment.

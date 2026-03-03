@@ -24,6 +24,7 @@ export interface InfractionType {
   fineAmounts: FineAmount[];  // [1st, 2nd, 3rd, 4th, 5th+] escalating amounts
   category?: string;    // optional grouping
   isActive: boolean;
+  fineNo?: number;      // Madde numarası (article number)
 }
 
 export interface Fine {
@@ -37,6 +38,9 @@ export interface Fine {
   isPaid: boolean;
   paidDate?: string;
   isDeleted: boolean;   // soft delete
+  time?: string;        // HH:mm format
+  location?: string;    // İhlal yeri
+  tierIndex?: number;   // which tier was applied (0-4)
 }
 
 export interface AuthState {

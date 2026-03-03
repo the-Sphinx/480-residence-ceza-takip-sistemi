@@ -37,7 +37,7 @@ let tokenClient: TokenClient | null = null;
 let onTokenCallback: ((response: TokenResponse) => void) | null = null;
 let onErrorCallback: ((error: { type: string; message?: string }) => void) | null = null;
 
-const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email';
+const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive';
 
 export function initGoogleAuth(): boolean {
   if (!window.google?.accounts?.oauth2) {

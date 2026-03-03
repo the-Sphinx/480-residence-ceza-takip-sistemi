@@ -30,9 +30,14 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Check, Trash2, ArrowUpDown } from 'lucide-react';
+import { FineForm } from '@/components/fines/FineForm';
+import { Check, Trash2, ArrowUpDown, Printer, Loader2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { BLOCKS } from '@/types';
+import { useAuthStore } from '@/stores/authStore';
+import { generateTutanak } from '@/services/googleDocs';
+import { getFineTypeLabel } from '@/utils/fineCalculation';
+import type { Fine } from '@/types';
 
 type SortField = 'date' | 'tenant' | 'amount' | 'status';
 type SortDir = 'asc' | 'desc';
@@ -44,6 +49,8 @@ export function FinesPage() {
   const tenants = useTenantsStore((s) => s.tenants);
   const infractions = useInfractionsStore((s) => s.infractions);
 
+  const accessToken = useAuthStore((s) => s.accessToken);
+
   const [blockFilter, setBlockFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [infractionFilter, setInfractionFilter] = useState('all');
@@ -51,6 +58,8 @@ export function FinesPage() {
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [generatingTutanakId, setGeneratingTutanakId] = useState<string | null>(null);
+  const [fineFormOpen, setFineFormOpen] = useState(false);
 
   const tenantMap = useMemo(() => {
     const map = new Map<string, { blockId: string; unitNo: number; fullName: string }>();
@@ -150,6 +159,45 @@ export function FinesPage() {
     toast.success('Ceza silindi');
   }
 
+  async function handlePrint(fine: Fine) {
+    if (!accessToken) {
+      toast.error('Oturum açmanız gerekiyor');
+      return;
+    }
+    const tenant = tenants.find((t) => t.id === fine.tenantId);
+    const infraction = infractions.find((i) => i.id === fine.infractionTypeId);
+    if (!tenant || !infraction) {
+      toast.error('Sakin veya ceza türü bulunamadı');
+      return;
+    }
+
+    setGeneratingTutanakId(fine.id);
+    try {
+      const data = {
+        resident: tenant.fullName,
+        blockId: tenant.blockId,
+        unitNo: String(tenant.unitNo),
+        date: formatDate(fine.date),
+        time: fine.time || '',
+        location: fine.location || '',
+        fineNo: infraction.fineNo != null ? String(infraction.fineNo) : '',
+        fineDescription: infraction.description || infraction.name,
+        fineType: getFineTypeLabel(fine.amountLabel),
+        fineAmount: formatCurrency(fine.amount),
+      };
+
+      const fileName = `Tutanak - ${tenant.blockId}${tenant.unitNo} ${tenant.fullName} - ${fine.date} - ${infraction.name}`;
+      const url = await generateTutanak(accessToken, data, fileName);
+      window.open(url, '_blank');
+      toast.success('Tutanak oluşturuldu');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Tutanak oluşturulamadı';
+      toast.error(message);
+    } finally {
+      setGeneratingTutanakId(null);
+    }
+  }
+
   // Unique infraction types that appear in active fines
   const usedInfractionTypes = useMemo(() => {
     const ids = new Set(fines.filter((f) => !f.isDeleted).map((f) => f.infractionTypeId));
@@ -170,8 +218,14 @@ export function FinesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Cezalar</h2>
-        <div className="text-sm text-muted-foreground">
-          {filteredFines.length} ceza &middot; Toplam borç: <span className="font-semibold text-destructive">{formatCurrency(totalUnpaid)}</span>
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-muted-foreground">
+            {filteredFines.length} ceza &middot; Toplam borç: <span className="font-semibold text-destructive">{formatCurrency(totalUnpaid)}</span>
+          </div>
+          <Button onClick={() => setFineFormOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Ceza Ekle
+          </Button>
         </div>
       </div>
 
@@ -260,6 +314,19 @@ export function FinesPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Tutanak Oluştur"
+                        disabled={generatingTutanakId === fine.id}
+                        onClick={() => handlePrint(fine)}
+                      >
+                        {generatingTutanakId === fine.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Printer className="h-4 w-4" />
+                        )}
+                      </Button>
                       {!fine.isPaid && fine.amount > 0 && (
                         <Button
                           variant="ghost"
@@ -286,6 +353,8 @@ export function FinesPage() {
           </TableBody>
         </Table>
       </div>
+
+      <FineForm open={fineFormOpen} onClose={() => setFineFormOpen(false)} />
 
       {/* Delete confirmation */}
       <Dialog open={!!deleteConfirmId} onOpenChange={(v) => !v && setDeleteConfirmId(null)}>

@@ -24,6 +24,7 @@ interface InfractionFormProps {
 export function InfractionForm({ open, onClose, infraction }: InfractionFormProps) {
   const addInfraction = useInfractionsStore((s) => s.addInfraction);
   const updateInfraction = useInfractionsStore((s) => s.updateInfraction);
+  const allInfractions = useInfractionsStore((s) => s.infractions);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -90,6 +91,7 @@ export function InfractionForm({ open, onClose, infraction }: InfractionFormProp
       });
       toast.success('Ceza türü güncellendi');
     } else {
+      const maxFineNo = allInfractions.reduce((max, i) => Math.max(max, i.fineNo ?? 0), 0);
       const newInfraction: InfractionType = {
         id: crypto.randomUUID(),
         name: name.trim(),
@@ -97,6 +99,7 @@ export function InfractionForm({ open, onClose, infraction }: InfractionFormProp
         fineAmounts: amounts,
         category: category.trim() || undefined,
         isActive: true,
+        fineNo: maxFineNo + 1,
       };
       addInfraction(newInfraction);
       toast.success('Yeni ceza türü eklendi');

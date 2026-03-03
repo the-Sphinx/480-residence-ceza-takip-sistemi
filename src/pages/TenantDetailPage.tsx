@@ -24,8 +24,12 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Plus, Check, CheckCheck, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Check, CheckCheck, Trash2, Printer, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/stores/authStore';
+import { generateTutanak } from '@/services/googleDocs';
+import { getFineTypeLabel } from '@/utils/fineCalculation';
+import type { Fine } from '@/types';
 
 export function TenantDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,9 +40,12 @@ export function TenantDetailPage() {
   const softDelete = useFinesStore((s) => s.softDelete);
   const infractions = useInfractionsStore((s) => s.infractions);
 
+  const accessToken = useAuthStore((s) => s.accessToken);
+
   const [fineFormOpen, setFineFormOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [markAllConfirm, setMarkAllConfirm] = useState(false);
+  const [generatingTutanakId, setGeneratingTutanakId] = useState<string | null>(null);
 
   const tenantFines = useMemo(() => {
     if (!id) return [];
@@ -83,6 +90,44 @@ export function TenantDetailPage() {
     softDelete(deleteConfirmId);
     setDeleteConfirmId(null);
     toast.success('Ceza silindi');
+  }
+
+  async function handlePrint(fine: Fine) {
+    if (!accessToken || !tenant) {
+      toast.error('Oturum açmanız gerekiyor');
+      return;
+    }
+    const infraction = infractions.find((i) => i.id === fine.infractionTypeId);
+    if (!infraction) {
+      toast.error('Ceza türü bulunamadı');
+      return;
+    }
+
+    setGeneratingTutanakId(fine.id);
+    try {
+      const data = {
+        resident: tenant.fullName,
+        blockId: tenant.blockId,
+        unitNo: String(tenant.unitNo),
+        date: formatDate(fine.date),
+        time: fine.time || '',
+        location: fine.location || '',
+        fineNo: infraction.fineNo != null ? String(infraction.fineNo) : '',
+        fineDescription: infraction.description || infraction.name,
+        fineType: getFineTypeLabel(fine.amountLabel),
+        fineAmount: formatCurrency(fine.amount),
+      };
+
+      const fileName = `Tutanak - ${tenant.blockId}${tenant.unitNo} ${tenant.fullName} - ${fine.date} - ${infraction.name}`;
+      const url = await generateTutanak(accessToken, data, fileName);
+      window.open(url, '_blank');
+      toast.success('Tutanak oluşturuldu');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Tutanak oluşturulamadı';
+      toast.error(message);
+    } finally {
+      setGeneratingTutanakId(null);
+    }
   }
 
   if (!tenant) {
@@ -196,6 +241,19 @@ export function TenantDetailPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Tutanak Oluştur"
+                        disabled={generatingTutanakId === fine.id}
+                        onClick={() => handlePrint(fine)}
+                      >
+                        {generatingTutanakId === fine.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Printer className="h-4 w-4" />
+                        )}
+                      </Button>
                       {!fine.isPaid && fine.amount > 0 && (
                         <Button
                           variant="ghost"

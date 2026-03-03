@@ -105,7 +105,7 @@ export const useInfractionsStore = create<InfractionsState>((set, get) => ({
     if (isSignedIn && accessToken && spreadsheetId) {
       setSyncStatus('syncing');
       try {
-        const rowIndex = await findRowIndex(accessToken, spreadsheetId, SHEET_NAMES.infractions, id);
+        const rowIndex = await findRowIndex(accessToken, spreadsheetId, SHEET_NAMES.infractions, id, 'B');
         const current = get().infractions.find((i) => i.id === id);
         if (!current) return;
         const updated = { ...current, ...updates };
@@ -134,7 +134,7 @@ export const useInfractionsStore = create<InfractionsState>((set, get) => ({
     if (isSignedIn && accessToken && spreadsheetId) {
       setSyncStatus('syncing');
       try {
-        const rowIndex = await findRowIndex(accessToken, spreadsheetId, SHEET_NAMES.infractions, id);
+        const rowIndex = await findRowIndex(accessToken, spreadsheetId, SHEET_NAMES.infractions, id, 'B');
         const updated = { ...infraction, ...updates };
         await updateRow(accessToken, spreadsheetId, SHEET_NAMES.infractions, rowIndex, infractionToRow(updated));
         setSyncStatus('idle');
