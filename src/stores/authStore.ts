@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { SyncStatus } from '@/types';
 import {
   initGoogleAuth,
+  waitForGIS,
   requestAccessToken,
   fetchUserEmail,
   revokeToken,
@@ -30,7 +31,7 @@ interface AuthStoreState {
   autoSync: boolean;
   tokenExpiry: number | null;
 
-  initAuth: () => void;
+  initAuth: () => Promise<void>;
   signIn: () => Promise<void>;
   signOut: () => void;
   setSyncStatus: (status: SyncStatus) => void;
@@ -124,8 +125,12 @@ export const useAuthStore = create<AuthStoreState>((set, get) => {
     autoSync: localStorage.getItem(AUTO_SYNC_KEY) !== 'false',
     tokenExpiry: null,
 
-    initAuth: () => {
-      const isGisLoaded = initGoogleAuth();
+    initAuth: async () => {
+      // Wait up to 10 s for the Google Identity Services script to load
+      // (async/defer on GitHub Pages can be slower than the app bundle)
+      const gisReady = await waitForGIS(10000);
+      const isGisLoaded = gisReady ? initGoogleAuth() : false;
+
       const token = getStoredToken();
       const email = getStoredEmail();
       const expiry = getStoredTokenExpiry();

@@ -39,6 +39,28 @@ let onErrorCallback: ((error: { type: string; message?: string }) => void) | nul
 
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive';
 
+export function waitForGIS(timeoutMs = 10000): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (window.google?.accounts?.oauth2) {
+      resolve(true);
+      return;
+    }
+    const interval = 100;
+    let elapsed = 0;
+    const timer = setInterval(() => {
+      elapsed += interval;
+      if (window.google?.accounts?.oauth2) {
+        clearInterval(timer);
+        resolve(true);
+      } else if (elapsed >= timeoutMs) {
+        clearInterval(timer);
+        console.warn('Google Identity Services not loaded (timeout)');
+        resolve(false);
+      }
+    }, interval);
+  });
+}
+
 export function initGoogleAuth(): boolean {
   if (!window.google?.accounts?.oauth2) {
     console.warn('Google Identity Services not loaded');
