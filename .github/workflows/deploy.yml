@@ -35,6 +35,8 @@ jobs:
           GITHUB_PAGES: true
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           VITE_GOOGLE_SPREADSHEET_ID: ${{ secrets.VITE_GOOGLE_SPREADSHEET_ID }}
+          VITE_TUTANAK_TEMPLATE_DOC_ID: ${{ secrets.VITE_TUTANAK_TEMPLATE_DOC_ID }}
+          VITE_TUTANAKLAR_FOLDER_ID: ${{ secrets.VITE_TUTANAKLAR_FOLDER_ID }}
 
       - uses: actions/configure-pages@v4
 
